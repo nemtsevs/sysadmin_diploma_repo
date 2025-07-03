@@ -4,11 +4,11 @@ linux:  # Группа хостов
     nginx:  # Подгруппа хостов
       hosts:  # Узлы
         vm1: &vm1
-          ansible_host: 84.201.166.7
+          ansible_host: 89.169.181.135
         vm2: &vm2
-          ansible_host: 89.169.162.249
+          ansible_host: 89.169.178.211
         vm3: &vm3
-          ansible_host: 51.250.96.255
+          ansible_host: 89.169.186.74
 
     wiki_proxy:
       hosts:
