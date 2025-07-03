@@ -1,0 +1,55 @@
+---
+linux:  # Группа хостов
+  children:
+    nginx:  # Подгруппа хостов
+      hosts:  # Узлы
+        vm1: &vm1
+          ansible_host: 84.201.166.7
+        vm2: &vm2
+          ansible_host: 89.169.162.249
+        vm3: &vm3
+          ansible_host: 51.250.96.255
+
+    wiki_proxy:
+      hosts:
+        vm1: *vm1
+
+    wiki:
+      children:
+        wiki_media:
+          hosts:
+            vm2: *vm2
+            vm3: *vm3
+        wiki_db:
+          hosts:
+            vm2: *vm2
+            vm3: *vm3
+        wiki_db_master:
+          hosts:
+            vm2: *vm2
+        wiki_db_reserv:
+          hosts:
+            vm3: *vm3
+
+    zabbix_server:
+      hosts:
+        vm1: *vm1
+
+  vars:  # Переменные группы
+    ansible_user: s20691161
+    connection_protocol: ssh
+    ansible_become: true
+
+    wiki_proxy_vm: "{{ groups['wiki_proxy'][0] }}"
+
+    wiki_media_init_vm: "{{ groups['wiki_media'][0] }}"
+
+    wiki_db_master_vm: "{{ groups['wiki_db_master'][0] }}"
+    wiki_db_master_ip: "{{ hostvars[groups['wiki_db_master'][0]].ansible_host }}"
+
+    wiki_db_reserv_vm: "{{ groups['wiki_db_reserv'][0] }}"
+    wiki_db_reserv_ip: "{{ hostvars[groups['wiki_db_reserv'][0]].ansible_host }}"
+
+    zabbix_server_ip: "{{ hostvars[groups['zabbix_server'][0]].ansible_host }}"
+
+    wiki_s3_bucket: "s3bucket-s20691161-1"
