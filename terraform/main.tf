@@ -29,9 +29,9 @@ resource "yandex_compute_instance" "virtual_machine" {
     core_fraction = each.value["core_fraction"]
   }
 
-  scheduling_policy {
-    preemptible = each.value["is_preemptible"]
-  }
+  #scheduling_policy {
+  #  preemptible = each.value["is_preemptible"]
+  #}
 
   boot_disk {
     disk_id = yandex_compute_disk.boot-disk[each.key].id
