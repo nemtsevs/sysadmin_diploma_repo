@@ -52,4 +52,4 @@ linux:  # Группа хостов
 
     zabbix_server_ip: "{{ hostvars[groups['zabbix_server'][0]].ansible_host }}"
 
-    wiki_s3_bucket: "s3bucket-s20691161-1"
+    wiki_s3_bucket: "s3bucket-s20691161-0"
