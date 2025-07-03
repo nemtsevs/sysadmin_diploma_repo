@@ -1,0 +1,87 @@
+---
+# tasks file for zabbix_agent_install
+
+- name: Установить zabbix-agent
+  ansible.builtin.apt:
+    name: zabbix-agent
+    state: present
+
+- name: Подменить zabbix_agentd.conf
+  ansible.builtin.template:
+    src: zabbix_agentd.conf.j2
+    dest: /etc/zabbix/zabbix_agentd.conf
+
+- name: Перезапустить zabbix-agent и добавить в автозагрузку
+  ansible.builtin.service:
+    name: zabbix-agent
+    state: restarted
+    enabled: true
+
+- name: Получить Zabbix API auth token
+  ansible.builtin.uri:
+    url: "http://{{ zabbix_server_ip }}:8080/api_jsonrpc.php"
+    method: POST
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: "user.login"
+      params:
+        username: "Admin"
+        password: "{{ zabbix_server_api_admin_password }}"
+      id: 10
+    status_code: 200
+    timeout: 10
+  register: zbx_auth
+  no_log: true
+
+- set_fact:
+    zbx_token: "{{ zbx_auth.json.result }}"
+
+- name: Зарегистрировать хост на Zabbix-сервере
+  ansible.builtin.uri:
+    url: "http://{{ zabbix_server_ip }}:8080/api_jsonrpc.php"
+    method: POST
+    headers:
+      Content-Type: "application/json-rpc"
+      Authorization: "Bearer {{ zbx_token }}"
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: "host.create"
+      params:
+        host: "{{ inventory_hostname }}"
+        groups:
+          - groupid: 2  # Linux servers
+        interfaces:
+          - type: 1  # Zabbix Agent
+            main: 1
+            useip: 1
+            ip: "{{ ansible_host }}"
+            dns: ""
+            port: "10050"
+        templates:
+          - templateid: 10001  # Linux by Zabbix agent
+      id: 20
+    status_code: 200
+    timeout: 30
+  register: host_registration
+  changed_when: host_registration.json.result is defined
+
+- name: Вывести результат регистрации хоста
+  debug:
+    var: host_registration.json
+
+- name: Выход из Zabbix API
+  ansible.builtin.uri:
+    url: "http://{{ zabbix_server_ip }}:8080/api_jsonrpc.php"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ zbx_token }}"
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: "user.logout"
+      params: []
+      id: 30
+    status_code: 200
+    timeout: 5

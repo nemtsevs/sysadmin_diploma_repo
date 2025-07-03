@@ -1,0 +1,21 @@
+---
+# tasks file for php_install
+
+- name: Остановить и отключить Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: stopped
+    enabled: false
+
+- name: Установить пакеты PHP
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - "{{ php_packages_to_install }}"
+
+- name: Включить и запустить Apache2
+  ansible.builtin.service:
+    name: apache2
+    state: started
+    enabled: true

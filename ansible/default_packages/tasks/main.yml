@@ -1,0 +1,15 @@
+---
+# tasks file for default_packages
+
+- name: Установить имя хоста
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  when: inventory_hostname != ansible_facts['hostname']
+
+- name: Установить стандартные пакеты
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - "{{ packages_to_install }}"
+  when: ansible_distribution == "Ubuntu"

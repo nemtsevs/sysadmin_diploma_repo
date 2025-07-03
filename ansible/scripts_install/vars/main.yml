@@ -1,0 +1,6 @@
+---
+# vars file for scripts_install
+
+PRJ_HOME: "/home/s20691161/mediawiki"
+S3_BAK_CONTENT_DIR: "/mnt/s3bucket/mediawiki/backups/content"
+S3_BAK_DB_DIR: "/mnt/s3bucket/mediawiki/backups/db"

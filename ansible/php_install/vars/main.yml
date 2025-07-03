@@ -1,0 +1,11 @@
+---
+# vars file for php_install
+
+php_packages_to_install:
+  - php
+  - php-intl
+  - php-mbstring
+  - php-xml
+  - php-apcu
+  - php-curl
+  - php-pgsql

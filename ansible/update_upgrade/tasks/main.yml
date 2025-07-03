@@ -1,0 +1,11 @@
+---
+# tasks file for update_upgrade
+
+- name: Обновить кэш пакетов
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Обновить систему
+  ansible.builtin.apt:
+    upgrade: dist
+    autoremove: true

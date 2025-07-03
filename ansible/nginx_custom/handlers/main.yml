@@ -1,0 +1,9 @@
+---
+# handlers file for nginx_custom
+
+- name: Перезапустить Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+    enabled: true
+  listen: "restart nginx"

@@ -1,0 +1,8 @@
+---
+# handlers file for pg_install
+
+- name: Перезапустить Postgresql
+  ansible.builtin.systemd:
+    name: postgresql
+    state: restarted
+  listen: "restart postgresql"

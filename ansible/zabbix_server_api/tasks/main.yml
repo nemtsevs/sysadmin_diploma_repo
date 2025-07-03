@@ -1,0 +1,83 @@
+---
+# tasks file for zabbix_server_api
+
+- name: Установить python3-pip + обновить кэш
+  ansible.builtin.apt:
+    name: python3-pip
+    state: present
+    update_cache: true
+
+- name: Удалить несовместимые пакеты
+  ansible.builtin.pip:
+    name:
+      - zabbix-api
+      - zabbix-api-pyzbx
+      - pyzabbix
+      - py-zabbix
+    state: absent
+
+- name: Установить zabbix-api через pip
+  ansible.builtin.pip:
+    name: zabbix-api==0.5.4
+    executable: pip3
+
+- name: Получить Zabbix API auth token
+  ansible.builtin.uri:
+    url: "http://{{ zabbix_server_ip }}:8080/api_jsonrpc.php"
+    method: POST
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: "user.login"
+      params:
+        username: "Admin"
+        password: "{{ zabbix_server_api_admin_password }}"
+      id: 10
+    status_code: 200
+    timeout: 10
+  register: zbx_auth
+  no_log: true
+
+- set_fact:
+    zbx_token: "{{ zbx_auth.json.result }}"
+
+- name: Обновить имя Zabbix-агента Zabbix-сервера
+  ansible.builtin.uri:
+    url: "http://{{ zabbix_server_ip }}:8080/api_jsonrpc.php"
+    method: POST
+    headers:
+      Content-Type: "application/json-rpc"
+      Authorization: "Bearer {{ zbx_token }}"
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: "hostinterface.update"
+      params:
+        interfaceid: 1  # Zabbix Agent
+        useip: 0
+        dns: "zabbix-agent"
+        port: "10050"
+      id: 30
+    status_code: 200
+    timeout: 30
+  register: api_response
+  changed_when: api_response.json.result is defined
+
+- name: Вывести результат обновления
+  debug:
+    var: api_response.json
+
+- name: Выход из Zabbix API
+  ansible.builtin.uri:
+    url: "http://{{ zabbix_server_ip }}:8080/api_jsonrpc.php"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ zbx_token }}"
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: "user.logout"
+      params: []
+      id: 40
+    status_code: 200
+    timeout: 5

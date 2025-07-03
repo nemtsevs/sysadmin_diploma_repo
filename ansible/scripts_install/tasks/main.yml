@@ -1,0 +1,55 @@
+---
+# tasks file for scripts_install
+
+- name: Создать файл .pgpass и добавить строку
+  become_user: s20691161
+  ansible.builtin.lineinfile:
+    path: /home/s20691161/.pgpass
+    line: "localhost:5432:my_wiki:wikiuser:\
+      {{ postgres_wikiuser_password }}"
+    state: present
+    mode: "0600"
+    create: true
+
+- name: Создать необходимые директории
+  become_user: s20691161
+  ansible.builtin.file:
+    path: "{{ PRJ_HOME }}/{{ item }}"
+    state: directory
+  loop:
+    - "scripts"
+    - "tmp"
+    - "crontab"
+
+- name: Развернуть скрипты
+  become_user: s20691161
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "{{ PRJ_HOME }}/scripts/{{ item }}"
+    mode: "0755"
+    force: true
+  loop: "{{ query('fileglob', 'templates/*.sh') | map('basename') | list }}"
+
+- name: Создать доп. файлы
+  become_user: s20691161
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ PRJ_HOME }}/{{ item.dest }}"
+  loop:
+    - {
+      src: "crontab.new",
+      dest: "crontab/crontab.new"
+    }
+
+- name: Установить права
+  ansible.builtin.file:
+    path: "{{ PRJ_HOME }}"
+    owner: s20691161
+    group: s20691161
+    mode: "ug=rwX,o=rX"
+    recurse: true
+
+- name: Применить новый cron из файла
+  become_user: s20691161
+  ansible.builtin.command:
+    "crontab -u s20691161 {{ PRJ_HOME }}/crontab/crontab.new"

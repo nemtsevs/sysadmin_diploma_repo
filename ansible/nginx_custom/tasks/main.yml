@@ -1,0 +1,14 @@
+---
+# tasks file for nginx_custom
+
+- name: Установить Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Подменить главную веб-страницу
+  ansible.builtin.template:
+    src: index.nginx-debian.html.j2
+    dest: /var/www/html/index.nginx-debian.html
+  when: inventory_hostname != wiki_proxy_vm
+  notify: "restart nginx"

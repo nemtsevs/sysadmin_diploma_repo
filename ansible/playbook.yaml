@@ -1,0 +1,120 @@
+---
+- name: Установка имени хоста и стандартных пакетов
+  hosts: all
+  roles:
+    - role: default_packages
+  tags:
+    - default_packages
+
+- name: Установка Nginx и подмена главной веб-страницы
+  hosts: nginx
+  roles:
+    - role: nginx_custom
+  tags:
+    - nginx_custom
+
+- name: Настройка проксирующего Nginx
+  hosts: wiki_proxy
+  roles:
+    - role: nginx_proxy
+  tags:
+    - nginx_proxy
+
+- name: Обновление системы
+  hosts: wiki_media
+  roles:
+    - role: update_upgrade
+  tags:
+    - update_upgrade
+
+- name: Установка PostgreSQL 14
+  hosts: wiki_db
+  roles:
+    - role: pg_install
+  tags:
+    - pg_install
+
+- name: Подготовка базы данных MediaWiki
+  hosts: wiki_db
+  vars_files:
+    - vars/vault/postgres_vault.yml
+  roles:
+    - role: pg_mediawiki
+  tags:
+    - pg_mediawiki
+
+- name: Установка PHP
+  hosts: wiki_media
+  roles:
+    - role: php_install
+  tags:
+    - php_install
+
+- name: Установка MediaWiki
+  hosts: wiki_media
+  roles:
+    - role: mediawiki_install
+  tags:
+    - mediawiki_install
+
+- name: Первичная настройка MediaWiki
+  hosts: wiki_media
+  vars_files:
+    - vars/vault/postgres_vault.yml
+    - vars/vault/mediawiki_vault.yml
+  roles:
+    - role: mediawiki_settings
+  tags:
+    - mediawiki_settings
+
+- name: Настройка master-replica баз MediaWiki
+  hosts: wiki_db
+  vars_files:
+    - vars/vault/postgres_vault.yml
+  roles:
+    - role: pg_master_replica
+  tags:
+    - pg_master_replica
+
+- name: Установка Zabbix-сервера
+  hosts: zabbix_server
+  vars_files:
+    - vars/vault/zabbix_vault.yml
+  roles:
+    - role: zabbix_server_install
+  tags:
+    - zabbix_server_install
+
+- name: Настройка Zabbix API
+  hosts: zabbix_server
+  vars_files:
+    - vars/vault/zabbix_vault.yml
+  roles:
+    - role: zabbix_server_api
+  tags:
+    - zabbix_server_api
+
+- name: Установка Zabbix-агента
+  hosts: wiki
+  vars_files:
+    - vars/vault/zabbix_vault.yml
+  roles:
+    - role: zabbix_agent_install
+  tags:
+    - zabbix_agent_install
+
+- name: Настройка s3-бакета для MediaWiki
+  hosts: wiki
+  roles:
+    - role: mediawiki_s3_install
+  tags:
+    - mediawiki_s3_install
+
+- name: Установка скриптов
+  hosts: wiki
+  vars_files:
+    - vars/vault/postgres_vault.yml
+  roles:
+    - role: scripts_install
+  tags:
+    - scripts_install

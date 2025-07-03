@@ -1,0 +1,5 @@
+# backups
+* * * * * flock -n {{ PRJ_HOME }}/tmp/auto_runs_backups_to_s3.lock {{ PRJ_HOME }}/scripts/auto_runs_backups_to_s3.sh
+# techs
+00 0 * * * find {{ PRJ_HOME }}/tmp -type f -name "*.log" -mtime +5 -delete
+#EOF

@@ -1,0 +1,18 @@
+---
+# tasks file for nginx_proxy
+
+- name: Остановить Nginx (чтобы заменить конфиг)
+  ansible.builtin.service:
+    name: nginx
+    state: stopped
+
+- name: Подменить конфигурацию прокси
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+  notify: "restart nginx"
+
+- name: Удалить дефолтный конфиг сайта
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent

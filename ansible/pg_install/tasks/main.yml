@@ -1,0 +1,27 @@
+---
+# tasks file for pg_install
+
+- name: Установить PostgreSQL 14
+  ansible.builtin.apt:
+    name: postgresql-14
+    state: present
+
+- name: Запустить и включить PostgreSQL
+  ansible.builtin.systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Настроить postgresql.conf для сетевого доступа
+  ansible.builtin.replace:
+    path: /etc/postgresql/14/main/postgresql.conf
+    regexp: "^#?\\s*listen_addresses\\s*=\\s*'.*'"
+    replace: "listen_addresses = '*'"
+  notify: "restart postgresql"
+
+- name: Настроить pg_hba.conf для разрешения подключений
+  ansible.builtin.lineinfile:
+    path: /etc/postgresql/14/main/pg_hba.conf
+    line: "host    all             all             0.0.0.0/0               md5"
+    insertafter: EOF
+  notify: "restart postgresql"

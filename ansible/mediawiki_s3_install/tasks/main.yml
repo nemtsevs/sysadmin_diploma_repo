@@ -1,0 +1,82 @@
+---
+# tasks file for mediawiki_s3_install
+
+- name: Установить s3fs, fuse
+  ansible.builtin.apt:
+    name:
+      - s3fs
+      - fuse
+    state: present
+
+- name: Создать credentials файл
+  become_user: s20691161
+  ansible.builtin.copy:
+    dest: /home/s20691161/.passwd-s3fs
+    content: "\
+      {{ lookup('env', 'TF_VAR_yc_access_key_id') }}:\
+      {{ lookup('env', 'TF_VAR_yc_secret_access_key') }}"
+    mode: '0600'
+  when: lookup('env', 'TF_VAR_yc_access_key_id') is defined
+    and lookup('env', 'TF_VAR_yc_secret_access_key') is defined
+
+- name: Проверить монтирование бакета
+  ansible.builtin.set_fact:
+    is_mounted: >
+      {{ ansible_mounts
+      | selectattr('mount', 'equalto', '/mnt/s3bucket')
+      | list
+      | length > 0
+      }}
+
+- name: Отмонтировать бакет если смонтирован
+  ansible.builtin.mount:
+    path: /mnt/s3bucket
+    state: unmounted
+  when: is_mounted
+
+- name: Создать точку монтирования
+  ansible.builtin.file:
+    path: /mnt/s3bucket
+    state: directory
+    owner: s20691161
+    group: s20691161
+    mode: '0755'
+
+- name: Получить UID и GID пользователя
+  ansible.builtin.shell: |
+    id -u s20691161
+    id -g s20691161
+  register: user_ids
+  changed_when: false
+
+- name: Разрешить user_allow_other в fuse.conf
+  ansible.builtin.lineinfile:
+    path: /etc/fuse.conf
+    line: "user_allow_other"
+    state: present
+    create: true
+
+- name: Монтировать бакет
+  become_user: s20691161
+  ansible.builtin.command: >
+    s3fs {{ wiki_s3_bucket }} /mnt/s3bucket
+    -o allow_other
+    -o user
+    -o url=https://storage.yandexcloud.net
+    -o passwd_file=/home/s20691161/.passwd-s3fs
+    -o uid={{ user_ids.stdout_lines[0] }}
+    -o gid={{ user_ids.stdout_lines[1] }}
+
+- name: Добавить запись в fstab для автомонтирования бакета S3
+  ansible.builtin.mount:
+    path: /mnt/s3bucket
+    src: "s3fs#{{ wiki_s3_bucket }}"
+    fstype: fuse
+    opts: "_netdev,allow_other,user,\
+      url=https://storage.yandexcloud.net,\
+      passwd_file=/home/s20691161/.passwd-s3fs,\
+      uid={{ user_ids.stdout_lines[0] }},\
+      gid={{ user_ids.stdout_lines[1] }}"
+    state: present
+    dump: '0'
+    passno: '0'

@@ -1,0 +1,56 @@
+---
+# tasks file for zabbix_server_install
+
+- name: Установить docker-compose
+  ansible.builtin.apt:
+    name:
+      - docker
+      - docker-compose
+    state: present
+    update_cache: true
+
+- name: Создать директорию zabbix_server
+  become_user: s20691161
+  ansible.builtin.file:
+    path: /home/s20691161/zabbix_server
+    state: directory
+    mode: '0755'
+
+- name: Добавить пользователя в группу docker
+  ansible.builtin.user:
+    name: s20691161
+    groups: docker
+    append: true
+
+- name: Подменить docker-compose.yml zabbix_server
+  become_user: s20691161
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /home/s20691161/zabbix_server/docker-compose.yml
+
+- name: Остановить zabbix-agent service если запущен
+  ansible.builtin.service:
+    name: zabbix-agent
+    state: stopped
+  ignore_errors: true
+
+- name: Остановить и удалить контейнеры zabbix_server
+  become_user: s20691161
+  community.docker.docker_compose:
+    project_src: "/home/s20691161/zabbix_server/"
+    files: /home/s20691161/zabbix_server/docker-compose.yml
+    state: absent
+    remove_orphans: true
+
+- name: Запустить docker-compose zabbix_server
+  become_user: s20691161
+  community.docker.docker_compose:
+    project_src: "/home/s20691161/zabbix_server/"
+    files: /home/s20691161/zabbix_server/docker-compose.yml
+    state: present
+    stopped: false
+    recreate: always
+    pull: false
+  environment:
+    COMPOSE_PROJECT_NAME: zabbix_server
+    ZBX_API_URL: /api_jsonrpc.php
